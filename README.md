@@ -15,14 +15,18 @@
 
 ## 安装
 
-1. 浏览器安装 Tampermonkey 扩展
-2. 新建脚本，粘贴 [`octo-ai-unfold.user.js`](./octo-ai-unfold.user.js) 全部内容并保存
-3. 打开 Octo 网页版即可生效
+**一键安装**：装好 Tampermonkey 后，打开 [`octo-ai-unfold.user.js`](https://raw.githubusercontent.com/an9xyz/octo-script/main/octo-ai-unfold.user.js)（raw 链接），Tampermonkey 会弹出安装页；装后脚本头部已配置 `@updateURL`，可自动检查更新。
 
-匹配域名：`https://im.deepminer.com.cn/*`、`https://*.deepminer.com.cn/*`（如你的部署域名不同，改脚本头部 `@match`）。
+**手动安装**：新建脚本，粘贴 [`octo-ai-unfold.user.js`](./octo-ai-unfold.user.js) 全部内容并保存。
+
+打开 Octo 网页版即可生效。匹配域名：`https://im.deepminer.com.cn/*`、`https://*.deepminer.com.cn/*`（如你的部署域名不同，改脚本头部 `@match`）。
 
 ## 说明
 
 - `@grant none`，主题选择用 `localStorage`
 - 无障碍：`prefers-reduced-motion` 下关闭动效
 - 需要内核支持 CSS `:has()`（现代 Chromium 均支持）
+
+## License
+
+[MIT](./LICENSE) © an9xyz

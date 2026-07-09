@@ -4,6 +4,10 @@
 // @version      1.0
 // @description  美化 Octo(DMWork) 聊天消息：三档气泡(AI/自己/他人)、折叠会话自动展开、长消息限高「展开全文」，以及 @提及/引用/文件/合并转发等消息类型与暗色适配；左下角可切换消息主题(赛博紫·亮/暗、美加墨世界杯)。
 // @author       DataSaver
+// @homepageURL  https://github.com/an9xyz/octo-script
+// @supportURL   https://github.com/an9xyz/octo-script/issues
+// @downloadURL  https://raw.githubusercontent.com/an9xyz/octo-script/main/octo-ai-unfold.user.js
+// @updateURL    https://raw.githubusercontent.com/an9xyz/octo-script/main/octo-ai-unfold.user.js
 // @match        https://im.deepminer.com.cn/*
 // @match        https://*.deepminer.com.cn/*
 // @grant        none
