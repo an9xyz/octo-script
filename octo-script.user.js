@@ -6,8 +6,8 @@
 // @author       DataSaver
 // @homepageURL  https://github.com/an9xyz/octo-script
 // @supportURL   https://github.com/an9xyz/octo-script/issues
-// @downloadURL  https://raw.githubusercontent.com/an9xyz/octo-script/main/octo-ai-unfold.user.js
-// @updateURL    https://raw.githubusercontent.com/an9xyz/octo-script/main/octo-ai-unfold.user.js
+// @downloadURL  https://raw.githubusercontent.com/an9xyz/octo-script/main/octo-script.user.js
+// @updateURL    https://raw.githubusercontent.com/an9xyz/octo-script/main/octo-script.user.js
 // @match        https://im.deepminer.com.cn/*
 // @match        https://*.deepminer.com.cn/*
 // @grant        none
