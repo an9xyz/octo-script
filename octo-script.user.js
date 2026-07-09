@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Octo AI 消息美化展示
 // @namespace    http://tampermonkey.net/
-// @version      1.0
+// @version      1.1
 // @description  美化 Octo(DMWork) 聊天消息：三档气泡(AI/自己/他人)、折叠会话自动展开、长消息限高「展开全文」，以及 @提及/引用/文件/合并转发等消息类型与暗色适配；左下角可切换消息主题(赛博紫·亮/暗、美加墨世界杯)。
 // @author       DataSaver
 // @homepageURL  https://github.com/an9xyz/octo-script
@@ -18,7 +18,7 @@
     'use strict';
 
     const TAG = '[Octo AI 美化]';
-    const VERSION = 'v1.0';
+    const VERSION = 'v1.1';
 
     /* ============================================================
      * 0) 可调参数
@@ -655,7 +655,7 @@
             .wk-fold-msg-text.octo-clamp.octo-expanded { cursor: zoom-out !important; }
 
             /* ========================================================
-             * Bot 详情弹窗 —— cyber-glass profile 卡片（frontend-design 精修）
+             * Bot 详情弹窗 —— 全息卡牌（holographic trading card）
              * DOM: .wk-bot-detail-content
              *        > .wk-bot-detail-header (头像 / 名字+AiBadge / @id / [chip])
              *        > .wk-bot-detail-desc ×N (.wk-bot-detail-label + 值)
@@ -695,27 +695,100 @@
                 82% { box-shadow: inset 0 -2px 0 0 rgba(0, 224, 255, 0.92), inset 0 -16px 22px -5px rgba(124, 60, 240, 0.44); }
             }
 
-            /* 外壳：大圆角 + 裁切 + 柔和投影 */
+            /* 外壳 → 卡牌本体：金箔全息卡框 + 斜向流光 + 浮起；随鼠标 3D 倾斜(见 JS bindBotCardTilt) */
             .wk-bot-detail-modal .wk-modal-shell {
-                border-radius: 18px !important;
+                position: relative !important;
+                border-radius: 16px !important;
                 overflow: hidden !important;
-                box-shadow: 0 24px 64px rgba(26, 22, 64, 0.30) !important;
+                box-shadow: 0 30px 70px rgba(26, 22, 64, 0.38), 0 2px 8px rgba(26, 22, 64, 0.20) !important;
+                transform: perspective(1100px) rotateX(var(--octo-card-rx, 0deg)) rotateY(var(--octo-card-ry, 0deg)) translateY(var(--octo-card-lift, 0px)) scale(var(--octo-card-sc, 1)) !important;
+                transition: transform .12s ease, box-shadow .2s ease !important;
+                will-change: transform !important;
+            }
+            .wk-bot-detail-modal .wk-modal-shell:hover {
+                --octo-card-lift: -4px;
+                --octo-card-sc: 1.015;
+                box-shadow: 0 42px 92px rgba(26, 22, 64, 0.46), 0 3px 10px rgba(26, 22, 64, 0.24) !important;
+            }
+            /* 金箔全息卡框（渐变描边 + mask 挖空只留 3px 边）*/
+            .wk-bot-detail-modal .wk-modal-shell::after {
+                content: "" !important;
+                position: absolute !important;
+                inset: 0 !important;
+                border-radius: 16px !important;
+                padding: 3px !important;
+                background: linear-gradient(135deg, #f2d98a 0%, #ffffff 18%, #c9a24b 38%, #8a6a24 55%, #f2d98a 72%, #ffffff 88%, #c9a24b 100%) !important;
+                -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0) !important;
+                -webkit-mask-composite: xor !important;
+                        mask-composite: exclude !important;
+                pointer-events: none !important;
+                z-index: 4 !important;
+            }
+            /* 全息流光：斜向高光带缓慢横扫(screen 混合只提亮，holo 卡质感) */
+            .wk-bot-detail-modal .wk-modal-shell::before {
+                content: "" !important;
+                position: absolute !important;
+                top: -30% !important;
+                left: -60% !important;
+                width: 55% !important;
+                height: 160% !important;
+                background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.28) 38%, rgba(120, 220, 255, 0.30) 47%, rgba(255, 190, 255, 0.30) 53%, rgba(255, 255, 255, 0.28) 62%, transparent 100%) !important;
+                transform: skewX(-18deg) !important;
+                mix-blend-mode: screen !important;
+                pointer-events: none !important;
+                z-index: 3 !important;
+                animation: octo-card-holo 5.5s cubic-bezier(.5, 0, .5, 1) infinite !important;
+            }
+            @keyframes octo-card-holo {
+                0%   { left: -60%; opacity: 0; }
+                12%  { opacity: 1; }
+                55%  { opacity: 1; }
+                70%  { left: 150%; opacity: 0; }
+                100% { left: 150%; opacity: 0; }
+            }
+            /* 3D 倾斜后，Semi 外层容器(白底+阴影)若不动会露在卡片后面「露两层」→ 透明化, 只留卡片本体倾斜。
+             * 同时 overflow:visible 让倾斜的卡片不被外层裁切。覆盖亮/暗两种(暗色段本给 .wk-modal 容器上过底色)。 */
+            .wk-bot-detail-modal .semi-modal-content,
+            .wk-bot-detail-modal .semi-modal-body,
+            body[theme-mode="dark"] .wk-bot-detail-modal .semi-modal-content,
+            body[theme-mode="dark"] .wk-bot-detail-modal .semi-modal-body {
+                background: transparent !important;
+                box-shadow: none !important;
+                border: none !important;
+                overflow: visible !important;
             }
             /* 内容：清顶 padding 给 banner，底部微暖白渐变，入场动效 */
             .wk-bot-detail-content {
+                position: relative !important;
                 padding: 0 22px 22px !important;
                 background: radial-gradient(130% 70% at 50% 0%, #fbfbff 0%, #ffffff 58%) !important;
                 animation: octo-bot-in .3s cubic-bezier(.22,.8,.28,1) both !important;
             }
+            /* 跟手全息高光(glare)：hover 时在光标(--octo-card-mx/my, 由 JS 设)处浮现随动高光 + 微彩,
+             * screen 混合只提亮；配合 3D 倾斜 = 全息卡转动反光感。默认隐藏, hover 显现。 */
+            .wk-bot-detail-content::before {
+                content: "" !important;
+                position: absolute !important;
+                inset: 0 !important;
+                z-index: 2 !important;
+                pointer-events: none !important;
+                border-radius: 14px !important;
+                background: radial-gradient(circle at var(--octo-card-mx, 50%) var(--octo-card-my, 50%), rgba(255, 255, 255, 0.38) 0%, rgba(150, 210, 255, 0.20) 16%, rgba(255, 180, 240, 0.14) 30%, transparent 46%) !important;
+                mix-blend-mode: screen !important;
+                opacity: var(--octo-card-glare, 0) !important;
+                transition: opacity .22s ease !important;
+            }
+            .wk-bot-detail-modal .wk-modal-shell:hover { --octo-card-glare: 1; }
 
             /* 头部：左对齐，承载 banner */
             .wk-bot-detail-header {
+                --octo-syn: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22400%22%20height%3D%22120%22%20viewBox%3D%220%200%20400%20120%22%20preserveAspectRatio%3D%22xMidYMid%20slice%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22sky%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23180f3a%22%2F%3E%3Cstop%20offset%3D%220.62%22%20stop-color%3D%22%233a1f6e%22%2F%3E%3Cstop%20offset%3D%220.99%22%20stop-color%3D%22%237a2f86%22%2F%3E%3C%2FlinearGradient%3E%3ClinearGradient%20id%3D%22sun%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%235be6ff%22%2F%3E%3Cstop%20offset%3D%220.5%22%20stop-color%3D%22%23b06bff%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23ff5ac6%22%2F%3E%3C%2FlinearGradient%3E%3CclipPath%20id%3D%22below%22%3E%3Crect%20x%3D%220%22%20y%3D%2284%22%20width%3D%22400%22%20height%3D%2236%22%2F%3E%3C%2FclipPath%3E%3C%2Fdefs%3E%3Crect%20width%3D%22400%22%20height%3D%22120%22%20fill%3D%22url(%23sky)%22%2F%3E%3Ccircle%20cx%3D%22270%22%20cy%3D%2284%22%20r%3D%2236%22%20fill%3D%22url(%23sun)%22%2F%3E%3Cg%20fill%3D%22%23180f3a%22%20opacity%3D%220.6%22%3E%3Crect%20x%3D%22228%22%20y%3D%2256%22%20width%3D%2284%22%20height%3D%223%22%2F%3E%3Crect%20x%3D%22226%22%20y%3D%2263%22%20width%3D%2288%22%20height%3D%224%22%2F%3E%3Crect%20x%3D%22224%22%20y%3D%2271%22%20width%3D%2292%22%20height%3D%225%22%2F%3E%3Crect%20x%3D%22222%22%20y%3D%2280%22%20width%3D%2296%22%20height%3D%226%22%2F%3E%3C%2Fg%3E%3Crect%20x%3D%220%22%20y%3D%2284%22%20width%3D%22400%22%20height%3D%2236%22%20fill%3D%22%230d0920%22%2F%3E%3Cg%20clip-path%3D%22url(%23below)%22%20stroke%3D%22%235be6ff%22%20stroke-opacity%3D%220.5%22%3E%3Cline%20x1%3D%220%22%20y1%3D%2284%22%20x2%3D%22400%22%20y2%3D%2284%22%2F%3E%3Cline%20x1%3D%220%22%20y1%3D%2291%22%20x2%3D%22400%22%20y2%3D%2291%22%2F%3E%3Cline%20x1%3D%220%22%20y1%3D%22102%22%20x2%3D%22400%22%20y2%3D%22102%22%2F%3E%3Cline%20x1%3D%220%22%20y1%3D%22118%22%20x2%3D%22400%22%20y2%3D%22118%22%2F%3E%3C%2Fg%3E%3Cg%20clip-path%3D%22url(%23below)%22%20stroke%3D%22%23b06bff%22%20stroke-opacity%3D%220.5%22%3E%3Cline%20x1%3D%22270%22%20y1%3D%2284%22%20x2%3D%22-60%22%20y2%3D%22120%22%2F%3E%3Cline%20x1%3D%22270%22%20y1%3D%2284%22%20x2%3D%2270%22%20y2%3D%22120%22%2F%3E%3Cline%20x1%3D%22270%22%20y1%3D%2284%22%20x2%3D%22170%22%20y2%3D%22120%22%2F%3E%3Cline%20x1%3D%22270%22%20y1%3D%2284%22%20x2%3D%22230%22%20y2%3D%22120%22%2F%3E%3Cline%20x1%3D%22270%22%20y1%3D%2284%22%20x2%3D%22270%22%20y2%3D%22120%22%2F%3E%3Cline%20x1%3D%22270%22%20y1%3D%2284%22%20x2%3D%22320%22%20y2%3D%22120%22%2F%3E%3Cline%20x1%3D%22270%22%20y1%3D%2284%22%20x2%3D%22400%22%20y2%3D%22120%22%2F%3E%3Cline%20x1%3D%22270%22%20y1%3D%2284%22%20x2%3D%22520%22%20y2%3D%22120%22%2F%3E%3C%2Fg%3E%3Crect%20x%3D%220%22%20y%3D%2282.5%22%20width%3D%22400%22%20height%3D%222%22%20fill%3D%22%237df0ff%22%2F%3E%3C%2Fsvg%3E") !important;
                 align-items: flex-start !important;
                 position: relative !important;
                 padding-top: 132px !important;
                 margin-bottom: 6px !important;
             }
-            /* banner 主体（浅色 cyberpunk）：淡紫底 + 霓虹青/品红 mesh + 底部霓虹青横线发光 */
+            /* banner 主体 → synthwave/outrun 落日场景（内联 SVG 存于 --octo-syn；亮/暗共用, 世界杯另覆盖绿茵） */
             .wk-bot-detail-header::before {
                 content: "" !important;
                 position: absolute !important;
@@ -723,18 +796,12 @@
                 left: -22px !important;
                 right: -22px !important;
                 height: 120px !important;
-                background:
-                    radial-gradient(62% 120% at 14% 0%, rgba(0, 220, 255, 0.32) 0%, transparent 56%),
-                    radial-gradient(70% 130% at 92% 0%, rgba(255, 70, 210, 0.28) 0%, transparent 58%),
-                    linear-gradient(118deg, #e7ecff 0%, #efe8ff 50%, #e0f3ff 100%) !important;
+                background: var(--octo-syn) center bottom / cover no-repeat, #150e34 !important;
                 border-radius: 18px 18px 0 0 !important;
-                box-shadow:
-                    inset 0 -2px 0 0 rgba(0, 224, 255, 0.60),
-                    inset 0 -10px 16px -6px rgba(124, 60, 240, 0.28) !important;
-                animation: octo-bot-neon 4s linear infinite, octo-glitch 5.5s linear infinite !important;
+                box-shadow: inset 0 -2px 0 0 rgba(120, 240, 255, 0.75) !important;
                 z-index: 0 !important;
             }
-            /* banner 霓虹网格（cyberpunk tron grid：竖紫 + 横青细线） */
+            /* banner 叠加 CRT 扫描线（synthwave 质感） */
             .wk-bot-detail-header::after {
                 content: "" !important;
                 position: absolute !important;
@@ -742,14 +809,8 @@
                 left: -22px !important;
                 right: -22px !important;
                 height: 120px !important;
-                background-image:
-                    linear-gradient(180deg, transparent 40%, rgba(0, 229, 255, 0.5) 50%, transparent 60%),
-                    repeating-linear-gradient(90deg, transparent 0 15px, rgba(124, 92, 240, 0.16) 15px 16px),
-                    repeating-linear-gradient(0deg, transparent 0 15px, rgba(0, 196, 240, 0.14) 15px 16px) !important;
-                background-size: 100% 54px, auto, auto !important;
-                background-repeat: no-repeat, repeat, repeat !important;
+                background: repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.045) 0 1px, transparent 1px 3px) !important;
                 border-radius: 18px 18px 0 0 !important;
-                animation: octo-bot-grid 3s linear infinite !important;
                 pointer-events: none !important;
                 z-index: 0 !important;
             }
@@ -758,16 +819,16 @@
             .wk-bot-detail-avatar {
                 position: relative !important;
                 z-index: 1 !important;
-                width: 84px !important;
-                height: 84px !important;
-                margin-top: -50px !important;
+                width: 104px !important;
+                height: 104px !important;
+                margin-top: -58px !important;
                 border-radius: 50% !important;
                 overflow: hidden !important;
                 background: #fff !important;
                 box-shadow:
-                    0 0 0 4px #fff,
-                    0 0 0 5px rgba(124, 107, 240, 0.5),
-                    0 10px 24px rgba(40, 30, 90, 0.30) !important;
+                    0 0 0 5px #fff,
+                    0 0 0 6px rgba(124, 107, 240, 0.55),
+                    0 12px 28px rgba(40, 30, 90, 0.32) !important;
             }
             /* 头像内部不论 img / semi-image / WKAvatar(.wk-avatar)，统一放大并裁圆
              * (.wk-avatar 原生仅 40px，且 WKAvatar 不消费 size prop → 这里强制撑满父容器) */
@@ -890,15 +951,15 @@
                 filter: brightness(1.05) !important;
             }
 
-            /* 关闭按钮位于浅色 banner 之上 → 深灰，保证可读 */
+            /* 关闭按钮位于深色 synthwave banner 之上 → 浅色，保证可读 */
             .wk-bot-detail-modal .semi-modal-close,
             .wk-bot-detail-modal .semi-modal-close .semi-icon,
             .wk-bot-detail-modal .semi-modal-close svg {
-                color: #4a4a5e !important;
-                fill: #4a4a5e !important;
+                color: #dfe3ee !important;
+                fill: #dfe3ee !important;
             }
             .wk-bot-detail-modal .semi-modal-close:hover {
-                background: rgba(74, 74, 94, 0.10) !important;
+                background: rgba(255, 255, 255, 0.14) !important;
                 border-radius: 8px !important;
             }
 
@@ -909,6 +970,8 @@
                     animation: none !important;
                 }
                 .wk-bot-detail-content { animation: none !important; }
+                .wk-bot-detail-modal .wk-modal-shell::before { animation: none !important; opacity: 0 !important; }
+                .wk-bot-detail-content::before { display: none !important; }
             }
 
             /* ========================================================
@@ -1572,10 +1635,7 @@
                 background: radial-gradient(130% 70% at 50% 0%, #1a1733 0%, #121022 58%) !important;
             }
             body[theme-mode="dark"] .wk-bot-detail-header::before {
-                background:
-                    radial-gradient(62% 120% at 14% 0%, rgba(0, 220, 255, 0.32) 0%, transparent 56%),
-                    radial-gradient(70% 130% at 92% 0%, rgba(255, 70, 210, 0.28) 0%, transparent 58%),
-                    linear-gradient(118deg, #161430 0%, #1a1535 50%, #101a2e 100%) !important;
+                background: var(--octo-syn) center bottom / cover no-repeat, #0d0920 !important;
             }
             body[theme-mode="dark"] .wk-bot-detail-desc,
             body[theme-mode="dark"] .wk-bot-detail-commands {
@@ -1850,6 +1910,71 @@
                 background: linear-gradient(160deg, #E8C56B 0%, #B68A2E 55%, #9A6E2E 100%) !important;
                 color: #2A2206 !important;
                 -webkit-text-fill-color: #2A2206 !important;
+            }
+
+            /* ---- 世界杯下 Bot 卡「内胆」世界杯化：banner 绿茵球场 + 暖纸金面板 + 金按钮（卡框/流光/3D 仍是基础层）---- */
+            /* banner：赛博网格 → 松绿→藏蓝渐变 + 淡白割草竖条纹 + 金底线；去赛博扫描/glitch */
+            body[data-octo-skin="worldcup"] .wk-bot-detail-header::before {
+                background:
+                    repeating-linear-gradient(90deg, transparent 0 24px, rgba(255, 255, 255, 0.06) 24px 26px),
+                    linear-gradient(140deg, #0B6E4F 0%, #0e7a57 42%, #13294B 100%) !important;
+                box-shadow: inset 0 -3px 0 0 rgba(198, 160, 74, 0.95) !important;
+                animation: none !important;
+            }
+            /* banner 白场地线：底部居中圈弧 + 中线 */
+            body[data-octo-skin="worldcup"] .wk-bot-detail-header::after {
+                background-image:
+                    radial-gradient(circle at 50% 132%, transparent 40px, rgba(255, 255, 255, 0.28) 40px, rgba(255, 255, 255, 0.28) 42px, transparent 43px),
+                    linear-gradient(90deg, transparent calc(50% - 1px), rgba(255, 255, 255, 0.22) calc(50% - 1px), rgba(255, 255, 255, 0.22) calc(50% + 1px), transparent calc(50% + 1px)) !important;
+                background-size: auto, auto !important;
+                background-repeat: no-repeat, no-repeat !important;
+                animation: none !important;
+                opacity: 1 !important;
+            }
+            /* 头像环：品牌紫 → 金 */
+            body[data-octo-skin="worldcup"] .wk-bot-detail-avatar {
+                box-shadow: 0 0 0 5px #fff, 0 0 0 6px rgba(198, 160, 74, 0.65), 0 12px 28px rgba(40, 30, 20, 0.30) !important;
+            }
+            /* 信息面板：赛博切角 HUD → 暖纸卡 + 金左条 */
+            body[data-octo-skin="worldcup"] .wk-bot-detail-desc,
+            body[data-octo-skin="worldcup"] .wk-bot-detail-commands {
+                background: #FBF8F0 !important;
+                border: 1px solid #EBE1CC !important;
+                border-radius: 10px !important;
+                clip-path: none !important;
+                color: #1C1B19 !important;
+            }
+            body[data-octo-skin="worldcup"] .wk-bot-detail-desc::before,
+            body[data-octo-skin="worldcup"] .wk-bot-detail-commands::before {
+                background: linear-gradient(180deg, #C6A04A, #8a6a24) !important;
+                box-shadow: none !important;
+                width: 3px !important;
+            }
+            /* 标签 // HUD → 去前缀 + 金 chip */
+            body[data-octo-skin="worldcup"] .wk-bot-detail-label {
+                color: #8a6a24 !important;
+                background: rgba(198, 160, 74, 0.16) !important;
+                clip-path: none !important;
+                border-radius: 4px !important;
+            }
+            body[data-octo-skin="worldcup"] .wk-bot-detail-label::before { content: "" !important; }
+            /* 命令名 / 编辑入口：赛博青 → 松绿 */
+            body[data-octo-skin="worldcup"] .wk-bot-detail-cmd-name,
+            body[data-octo-skin="worldcup"] .wk-bot-detail-edit-action,
+            body[data-octo-skin="worldcup"] .wk-bot-detail-value-edit { color: #0B6E4F !important; }
+            body[data-octo-skin="worldcup"] .wk-bot-detail-cmd-desc { color: #5b5344 !important; }
+            /* 发送键：品牌紫 → 金箔 + 深字 */
+            body[data-octo-skin="worldcup"] .wk-bot-detail-modal .semi-button-block.semi-button-primary:not(.wk-bot-detail-manage-btn):not(.wk-bot-detail-claw-btn) {
+                background: linear-gradient(120deg, #E8C56B, #C6A04A) !important;
+                color: #1C1B19 !important;
+                box-shadow: 0 6px 16px rgba(160, 120, 20, 0.35) !important;
+            }
+            /* 关闭键：深绿 banner 上 → 白色可见 */
+            body[data-octo-skin="worldcup"] .wk-bot-detail-modal .semi-modal-close,
+            body[data-octo-skin="worldcup"] .wk-bot-detail-modal .semi-modal-close .semi-icon,
+            body[data-octo-skin="worldcup"] .wk-bot-detail-modal .semi-modal-close svg {
+                color: #ffffff !important;
+                fill: #ffffff !important;
             }
 
             /* ---- 引用块 → 球门：accent 门框(横梁+门柱) + 淡菱形网；hover 踢球时球门网抖动(进球入网)联动 ---- */
@@ -2143,12 +2268,41 @@
         };
     }
 
+    /* ============================================================
+     * 4.5) Bot 资料卡「卡牌」3D 倾斜：pointermove 跟手倾斜（CSS 变量驱动 shell 的 rotateX/Y）
+     *   - 卡框/流光/浮起是纯 CSS；此处只补「跟随鼠标的 3D 倾斜」。
+     *   - reduced-motion 下不绑定；每个 shell 只绑一次（WeakSet）。
+     * ========================================================== */
+    const botTiltBound = new WeakSet();
+    function bindBotCardTilt() {
+        if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        document.querySelectorAll('.wk-bot-detail-modal .wk-modal-shell').forEach(el => {
+            if (botTiltBound.has(el)) return;
+            botTiltBound.add(el);
+            el.addEventListener('pointermove', (e) => {
+                const r = el.getBoundingClientRect();
+                if (!r.width || !r.height) return;
+                const px = (e.clientX - r.left) / r.width - 0.5;   // -0.5 ~ 0.5
+                const py = (e.clientY - r.top) / r.height - 0.5;
+                el.style.setProperty('--octo-card-ry', (px * 11).toFixed(2) + 'deg');   // 左右 → rotateY
+                el.style.setProperty('--octo-card-rx', (-py * 11).toFixed(2) + 'deg');  // 上下 → rotateX
+                el.style.setProperty('--octo-card-mx', (px * 100 + 50).toFixed(1) + '%');   // 光标 X% → 跟手高光
+                el.style.setProperty('--octo-card-my', (py * 100 + 50).toFixed(1) + '%');   // 光标 Y%
+            });
+            el.addEventListener('pointerleave', () => {
+                el.style.setProperty('--octo-card-ry', '0deg');
+                el.style.setProperty('--octo-card-rx', '0deg');
+            });
+        });
+    }
+
     function sync() {
         try { ensureThemeToggle(); reflectTheme(storedThemeId()); } catch (e) { console.warn(TAG, 'theme', e); }
         try { watchAllToggles(); } catch (e) { console.warn(TAG, 'watchAllToggles', e); }
         try { expandAllFoldSessions(); } catch (e) { console.warn(TAG, 'expandAllFoldSessions', e); }
         try { markAIContinueMessages(); } catch (e) { console.warn(TAG, 'markAIContinueMessages', e); }
         try { applyClamp(); } catch (e) { console.warn(TAG, 'applyClamp', e); }
+        try { bindBotCardTilt(); } catch (e) { console.warn(TAG, 'bindBotCardTilt', e); }
     }
 
     const scheduleSync = debounce(sync, 120);
