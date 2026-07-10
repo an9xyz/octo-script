@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Octo AI 消息美化展示 (dev)
 // @namespace    http://tampermonkey.net/
-// @version      1.2.0-dev.1
+// @version      1.2.0-dev.2
 // @description  美化 Octo(DMWork) 聊天消息：三档气泡(AI/自己/他人)、折叠会话自动展开、长消息限高「展开全文」，以及 @提及/引用/文件/合并转发等消息类型与暗色适配；左下角可切换消息主题(赛博紫·亮/暗、美加墨世界杯)。
 // @author       DataSaver
 // @homepageURL  https://github.com/an9xyz/octo-script
@@ -18,7 +18,7 @@
     'use strict';
 
     const TAG = '[Octo AI 美化]';
-    const VERSION = 'v1.2.0-dev.1';
+    const VERSION = 'v1.2.0-dev.2';
 
     /* ============================================================
      * 0) 可调参数
@@ -141,6 +141,12 @@
                 background-clip: text !important;
                 -webkit-text-fill-color: transparent !important;
                 color: transparent !important;
+            }
+            /* 性能：名字平时静态渐变(零重绘)，仅 hover 时开流光动画。
+             * (渐变随 --octo-hue 每帧重算才重绘，常驻会随屏上 AI 名字数量线性增加主线程占用) */
+            .wk-msg-row:has(.ai-badge):hover .wk-msg-row-sender,
+            .wk-fold-msg-name:hover,
+            .wk-bot-detail-modal:hover .wk-bot-detail-name {
                 animation: octo-name-wave 4s linear infinite !important;
             }
             @keyframes octo-name-wave {
@@ -150,7 +156,10 @@
             @media (prefers-reduced-motion: reduce) {
                 .wk-msg-row:has(.ai-badge) .wk-msg-row-sender,
                 .wk-fold-msg-name,
-                .wk-bot-detail-name { animation: none !important; }
+                .wk-bot-detail-name,
+                .wk-msg-row:has(.ai-badge):hover .wk-msg-row-sender,
+                .wk-fold-msg-name:hover,
+                .wk-bot-detail-modal:hover .wk-bot-detail-name { animation: none !important; }
             }
 
             /* AI 徽章 - 干净紫色标牌（赛博感交给卡片 HUD 角标，徽章不发光） */
@@ -500,7 +509,6 @@
                 background-clip: text !important;
                 -webkit-text-fill-color: transparent !important;
                 color: transparent !important;
-                animation: octo-name-wave 4s linear infinite !important;
                 padding: 0 !important;            /* 清除原生 Tag 的 2px 8px padding */
                 height: auto !important;          /* 清除原生固定 20px 高 */
                 border-radius: 0 !important;
@@ -858,7 +866,6 @@
                 background-clip: text !important;
                 -webkit-text-fill-color: transparent !important;
                 color: transparent !important;
-                animation: octo-name-wave 4s linear infinite !important;
             }
             /* 名字旁 AiBadge 是 flex 子元素：父级 text-fill 透明会继承下去 → 恢复白字，徽章不被流光染 */
             .wk-bot-detail-name .ai-badge {
@@ -1891,12 +1898,20 @@
                 background-clip: text !important;
                 -webkit-text-fill-color: transparent !important;
                 color: transparent !important;
+            }
+            /* 性能：世界杯名字同样平时静态、仅 hover 才流光 */
+            body[data-octo-skin="worldcup"] .wk-msg-row:has(.ai-badge):hover .wk-msg-row-sender,
+            body[data-octo-skin="worldcup"] .wk-fold-msg-name:hover,
+            body[data-octo-skin="worldcup"] .wk-bot-detail-modal:hover .wk-bot-detail-name {
                 animation: octo-name-wc 4s linear infinite !important;
             }
             @media (prefers-reduced-motion: reduce) {
                 body[data-octo-skin="worldcup"] .wk-msg-row:has(.ai-badge) .wk-msg-row-sender,
                 body[data-octo-skin="worldcup"] .wk-fold-msg-name,
-                body[data-octo-skin="worldcup"] .wk-bot-detail-name { animation: none !important; }
+                body[data-octo-skin="worldcup"] .wk-bot-detail-name,
+                body[data-octo-skin="worldcup"] .wk-msg-row:has(.ai-badge):hover .wk-msg-row-sender,
+                body[data-octo-skin="worldcup"] .wk-fold-msg-name:hover,
+                body[data-octo-skin="worldcup"] .wk-bot-detail-modal:hover .wk-bot-detail-name { animation: none !important; }
             }
             /* ---- AI 徽章：金箔（带高光内嵌，含折叠名 ::after 徽章、bot 卡徽章）---- */
             body[data-octo-skin="worldcup"] .wk-msg-row:has(.ai-badge) .ai-badge,
@@ -2308,9 +2323,14 @@
 
     function applyClamp() {
         if (!CONFIG.enableClamp) return;
+        // 读写分离：先一次性量完所有高度(集中触发一次重排)，再统一改 class；
+        // 避免「读 scrollHeight → 改 class → 再读」交错导致的多次强制同步重排(布局抖动)。
+        const measures = [];
         document.querySelectorAll(CLAMP_SEL).forEach(el => {
             // scrollHeight 在限高(overflow:hidden)下仍返回完整内容高度
-            const full = el.scrollHeight;
+            measures.push([el, el.scrollHeight]);
+        });
+        measures.forEach(([el, full]) => {
             const tall = full > CONFIG.clampHeight + 8;
             if (tall) {
                 el.classList.add('octo-clamp');           // add 已存在则无变更
@@ -2373,19 +2393,31 @@
     }
 
     function sync() {
-        try { ensureThemeToggle(); reflectTheme(storedThemeId()); } catch (e) { console.warn(TAG, 'theme', e); }
-        try { watchAllToggles(); } catch (e) { console.warn(TAG, 'watchAllToggles', e); }
-        try { expandAllFoldSessions(); } catch (e) { console.warn(TAG, 'expandAllFoldSessions', e); }
-        try { markAIContinueMessages(); } catch (e) { console.warn(TAG, 'markAIContinueMessages', e); }
-        try { applyClamp(); } catch (e) { console.warn(TAG, 'applyClamp', e); }
-        try { bindBotCardTilt(); } catch (e) { console.warn(TAG, 'bindBotCardTilt', e); }
+        // sync 自身会写 DOM(改 class/属性)；先断开 body observer，跑完再接，
+        // 否则这些写入会再次触发 observer → 即使页面静止也每轮空转(回环卡顿)。
+        if (document.hidden) return;            // 后台标签页不做任何工作
+        if (bodyObserver) bodyObserver.disconnect();
+        try {
+            try { ensureThemeToggle(); reflectTheme(storedThemeId()); } catch (e) { console.warn(TAG, 'theme', e); }
+            try { watchAllToggles(); } catch (e) { console.warn(TAG, 'watchAllToggles', e); }
+            try { expandAllFoldSessions(); } catch (e) { console.warn(TAG, 'expandAllFoldSessions', e); }
+            try { markAIContinueMessages(); } catch (e) { console.warn(TAG, 'markAIContinueMessages', e); }
+            try { applyClamp(); } catch (e) { console.warn(TAG, 'applyClamp', e); }
+            try { bindBotCardTilt(); } catch (e) { console.warn(TAG, 'bindBotCardTilt', e); }
+        } finally {
+            if (bodyObserver) bodyObserver.observe(document.body, OBSERVE_OPTS);
+        }
     }
 
-    const scheduleSync = debounce(sync, 120);
+    const scheduleSync = debounce(sync, 250);
 
+    let bodyObserver = null;
+    const OBSERVE_OPTS = { childList: true, subtree: true };
     function observe() {
-        const observer = new MutationObserver(scheduleSync);
-        observer.observe(document.body, { childList: true, subtree: true });
+        bodyObserver = new MutationObserver(scheduleSync);
+        bodyObserver.observe(document.body, OBSERVE_OPTS);
+        // 从后台切回前台时补一次同步(后台期间跳过了)
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) scheduleSync(); });
     }
 
     /* ============================================================
