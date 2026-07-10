@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Octo AI 消息美化展示 (dev)
 // @namespace    http://tampermonkey.net/
-// @version      1.2.0-dev.4
+// @version      1.2.0-dev.5
 // @description  美化 Octo(DMWork) 聊天消息：三档气泡(AI/自己/他人)、折叠会话自动展开、长消息限高「展开全文」，以及 @提及/引用/文件/合并转发等消息类型与暗色适配；左下角可切换消息主题(赛博紫·亮/暗、美加墨世界杯)。
 // @author       DataSaver
 // @homepageURL  https://github.com/an9xyz/octo-script
@@ -18,7 +18,7 @@
     'use strict';
 
     const TAG = '[Octo AI 美化]';
-    const VERSION = 'v1.2.0-dev.4';
+    const VERSION = 'v1.2.0-dev.5';
 
     /* ============================================================
      * 0) 可调参数
@@ -2604,8 +2604,33 @@
 
     let bodyObserver = null;
     const OBSERVE_OPTS = { childList: true, subtree: true };
+    // 本批变更是否新插入了 bot 资料卡相关节点
+    function mutationTouchesBotCard(records) {
+        const SEL = '.wk-bot-detail-content, .wk-bot-detail-desc, .wk-bot-detail-modal';
+        for (let i = 0; i < records.length; i++) {
+            const added = records[i].addedNodes;
+            for (let j = 0; j < added.length; j++) {
+                const n = added[j];
+                if (n.nodeType !== 1) continue;
+                if ((n.matches && n.matches(SEL)) ||
+                    (n.querySelector && n.querySelector('.wk-bot-detail-content, .wk-bot-detail-desc'))) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    // observer 回调：bot 卡一插入就「立即」打字段标记(同步，赶在首帧绘制前)，
+    // 避免等 250ms 防抖 sync 后才重排 → 创建者从整块面板缩成底部署名造成的高度跳变。
+    // 其余重活仍走防抖 sync。(observer 只监听 childList，setAttribute 不会回触发)
+    function onBodyMutations(records) {
+        if (mutationTouchesBotCard(records)) {
+            try { tagBotDetailFields(); } catch (e) { /* noop */ }
+        }
+        scheduleSync();
+    }
     function observe() {
-        bodyObserver = new MutationObserver(scheduleSync);
+        bodyObserver = new MutationObserver(onBodyMutations);
         bodyObserver.observe(document.body, OBSERVE_OPTS);
         // 从后台切回前台时补一次同步(后台期间跳过了)
         document.addEventListener('visibilitychange', () => { if (!document.hidden) scheduleSync(); });
