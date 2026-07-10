@@ -1,13 +1,13 @@
 // ==UserScript==
-// @name         Octo AI 消息美化展示
+// @name         Octo AI 消息美化展示 (dev)
 // @namespace    http://tampermonkey.net/
-// @version      1.1
+// @version      1.2.0-dev.1
 // @description  美化 Octo(DMWork) 聊天消息：三档气泡(AI/自己/他人)、折叠会话自动展开、长消息限高「展开全文」，以及 @提及/引用/文件/合并转发等消息类型与暗色适配；左下角可切换消息主题(赛博紫·亮/暗、美加墨世界杯)。
 // @author       DataSaver
 // @homepageURL  https://github.com/an9xyz/octo-script
 // @supportURL   https://github.com/an9xyz/octo-script/issues
-// @downloadURL  https://raw.githubusercontent.com/an9xyz/octo-script/main/octo-script.user.js
-// @updateURL    https://raw.githubusercontent.com/an9xyz/octo-script/main/octo-script.user.js
+// @downloadURL  https://raw.githubusercontent.com/an9xyz/octo-script/dev/octo-script.user.js
+// @updateURL    https://raw.githubusercontent.com/an9xyz/octo-script/dev/octo-script.user.js
 // @match        https://im.deepminer.com.cn/*
 // @match        https://*.deepminer.com.cn/*
 // @grant        none
@@ -18,7 +18,7 @@
     'use strict';
 
     const TAG = '[Octo AI 美化]';
-    const VERSION = 'v1.1';
+    const VERSION = 'v1.2.0-dev.1';
 
     /* ============================================================
      * 0) 可调参数
@@ -1913,28 +1913,104 @@
             }
 
             /* ---- 世界杯下 Bot 卡「内胆」世界杯化：banner 绿茵球场 + 暖纸金面板 + 金按钮（卡框/流光/3D 仍是基础层）---- */
-            /* banner：赛博网格 → 松绿→藏蓝渐变 + 淡白割草竖条纹 + 金底线；去赛博扫描/glitch */
+            /* 头部 → 方案B「悬浮完整头像」：上部深场球场渐变 banner，头像 contain 居中悬浮(完整不裁)，
+             * 名字/@handle 落到 banner 下白底左对齐；状态 chip 隐藏。 */
+            body[data-octo-skin="worldcup"] .wk-bot-detail-header {
+                position: relative !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                padding: 0 !important;
+                margin: 0 0 6px !important;
+                overflow: visible !important;
+            }
+            /* banner：深绿球场 → 夜蓝渐变(全宽出血)，托住悬浮头像，底部金色底线 */
             body[data-octo-skin="worldcup"] .wk-bot-detail-header::before {
+                content: "" !important;
+                position: absolute !important;
+                top: 0 !important;
+                left: -22px !important;
+                right: -22px !important;
+                bottom: auto !important;
+                height: 176px !important;
                 background:
-                    repeating-linear-gradient(90deg, transparent 0 24px, rgba(255, 255, 255, 0.06) 24px 26px),
-                    linear-gradient(140deg, #0B6E4F 0%, #0e7a57 42%, #13294B 100%) !important;
-                box-shadow: inset 0 -3px 0 0 rgba(198, 160, 74, 0.95) !important;
+                    radial-gradient(70% 90% at 50% 30%, rgba(255,216,130,0.28), transparent 60%),
+                    radial-gradient(130% 100% at 50% 0%, #1d7a54 0%, #0f4374 55%, #0a2a52 100%) !important;
+                border-radius: 16px 16px 0 0 !important;
+                box-shadow: inset 0 -3px 0 0 rgba(198,160,74,0.95) !important;
+                z-index: 0 !important;
                 animation: none !important;
             }
-            /* banner 白场地线：底部居中圈弧 + 中线 */
+            /* banner 金色 refractor 镀铬光(screen 提亮) */
             body[data-octo-skin="worldcup"] .wk-bot-detail-header::after {
-                background-image:
-                    radial-gradient(circle at 50% 132%, transparent 40px, rgba(255, 255, 255, 0.28) 40px, rgba(255, 255, 255, 0.28) 42px, transparent 43px),
-                    linear-gradient(90deg, transparent calc(50% - 1px), rgba(255, 255, 255, 0.22) calc(50% - 1px), rgba(255, 255, 255, 0.22) calc(50% + 1px), transparent calc(50% + 1px)) !important;
-                background-size: auto, auto !important;
-                background-repeat: no-repeat, no-repeat !important;
+                content: "" !important;
+                position: absolute !important;
+                top: 0 !important;
+                left: -22px !important;
+                right: -22px !important;
+                bottom: auto !important;
+                height: 176px !important;
+                background:
+                    repeating-linear-gradient(116deg, transparent 0 7px, rgba(255,240,200,0.10) 7px 8px),
+                    radial-gradient(120% 80% at 74% 8%, rgba(255,220,130,0.30), transparent 55%) !important;
+                border-radius: 16px 16px 0 0 !important;
+                mix-blend-mode: screen !important;
+                pointer-events: none !important;
+                z-index: 0 !important;
                 animation: none !important;
-                opacity: 1 !important;
             }
-            /* 头像环：品牌紫 → 金 */
+            /* 头像 → 居中悬浮、完整展示(contain 零裁切)。固定 150×150 白底金边方框：
+             * 无论头像原始比例如何，方框尺寸恒定 → 各卡头像方块大小一致(正方形填满、非方形框内留白)。 */
             body[data-octo-skin="worldcup"] .wk-bot-detail-avatar {
-                box-shadow: 0 0 0 5px #fff, 0 0 0 6px rgba(198, 160, 74, 0.65), 0 12px 28px rgba(40, 30, 20, 0.30) !important;
+                position: relative !important;
+                z-index: 1 !important;
+                align-self: center !important;
+                width: 150px !important;
+                height: 150px !important;
+                margin: 16px 0 0 !important;
+                border-radius: 16px !important;
+                overflow: hidden !important;
+                background: #fff !important;
+                box-shadow:
+                    0 0 0 3px rgba(255,255,255,0.92),
+                    0 0 0 4px rgba(198,160,74,0.95),
+                    0 10px 22px rgba(0,0,0,0.42) !important;
             }
+            body[data-octo-skin="worldcup"] .wk-bot-detail-avatar > *,
+            body[data-octo-skin="worldcup"] .wk-bot-detail-avatar .wk-avatar,
+            body[data-octo-skin="worldcup"] .wk-bot-detail-avatar .semi-image,
+            body[data-octo-skin="worldcup"] .wk-bot-detail-avatar .semi-image-img,
+            body[data-octo-skin="worldcup"] .wk-bot-detail-avatar img {
+                width: 100% !important;
+                height: 100% !important;
+                border-radius: 14px !important;
+                object-fit: contain !important;
+                object-position: center !important;
+            }
+            /* 名字 → 落到 banner 下白底，左对齐斜体铭牌(金流光继承基础世界杯规则) */
+            body[data-octo-skin="worldcup"] .wk-bot-detail-name {
+                position: static !important;
+                align-self: flex-start !important;
+                margin: 16px 0 0 !important;
+                font-size: 22px !important;
+                font-weight: 800 !important;
+                font-style: italic !important;
+                letter-spacing: 0.04em !important;
+            }
+            /* @handle → 蓝位置条，名字下方 */
+            body[data-octo-skin="worldcup"] .wk-bot-detail-id {
+                position: static !important;
+                align-self: flex-start !important;
+                margin: 6px 0 0 !important;
+                padding: 3px 12px !important;
+                border-radius: 6px !important;
+                background: linear-gradient(90deg, #123a86, #1e56b0) !important;
+                color: #eaf1ff !important;
+                font-weight: 700 !important;
+                letter-spacing: 0.05em !important;
+            }
+            /* 状态 chip（🔌 未上报 Agent 信息 + ?）不展示 */
+            body[data-octo-skin="worldcup"] .wk-bot-detail-octopush-chip { display: none !important; }
             /* 信息面板：赛博切角 HUD → 暖纸卡 + 金左条 */
             body[data-octo-skin="worldcup"] .wk-bot-detail-desc,
             body[data-octo-skin="worldcup"] .wk-bot-detail-commands {
