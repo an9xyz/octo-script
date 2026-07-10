@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Octo AI 消息美化展示 (dev)
 // @namespace    http://tampermonkey.net/
-// @version      1.2.0-dev.2
+// @version      1.2.0-dev.3
 // @description  美化 Octo(DMWork) 聊天消息：三档气泡(AI/自己/他人)、折叠会话自动展开、长消息限高「展开全文」，以及 @提及/引用/文件/合并转发等消息类型与暗色适配；左下角可切换消息主题(赛博紫·亮/暗、美加墨世界杯)。
 // @author       DataSaver
 // @homepageURL  https://github.com/an9xyz/octo-script
@@ -18,7 +18,7 @@
     'use strict';
 
     const TAG = '[Octo AI 美化]';
-    const VERSION = 'v1.2.0-dev.2';
+    const VERSION = 'v1.2.0-dev.3';
 
     /* ============================================================
      * 0) 可调参数
@@ -2068,6 +2068,91 @@
                 fill: #ffffff !important;
             }
 
+            /* ---- 世界杯 Bot 卡改版：圆形头像 + 备注/简介合成大框 + 创建者移到底部作署名 ----
+             * 字段由 JS 按标签文字打 data-octo-field / data-octo-group 标记(见 tagBotDetailFields)，
+             * 排序用 flex order(不搬 DOM，避免干扰 React)。 */
+            body[data-octo-skin="worldcup"] .wk-bot-detail-content {
+                display: flex !important;
+                flex-direction: column !important;
+            }
+            body[data-octo-skin="worldcup"] .wk-bot-detail-header { order: 0 !important; }
+            /* 圆形头像遮罩(保持 150 尺寸；白金环随之变圆) */
+            body[data-octo-skin="worldcup"] .wk-bot-detail-avatar { border-radius: 50% !important; }
+            body[data-octo-skin="worldcup"] .wk-bot-detail-avatar > *,
+            body[data-octo-skin="worldcup"] .wk-bot-detail-avatar .wk-avatar,
+            body[data-octo-skin="worldcup"] .wk-bot-detail-avatar .semi-image,
+            body[data-octo-skin="worldcup"] .wk-bot-detail-avatar .semi-image-img,
+            body[data-octo-skin="worldcup"] .wk-bot-detail-avatar img {
+                border-radius: 50% !important;
+                object-fit: cover !important;    /* 圆形头像用 cover 填满 */
+            }
+            /* 面板霓虹左条去掉(避免大框里出现多条竖线) */
+            body[data-octo-skin="worldcup"] .wk-bot-detail-desc::before,
+            body[data-octo-skin="worldcup"] .wk-bot-detail-commands::before { display: none !important; }
+            /* 备注/简介等「非创建者」字段 → 合成一个大框(连续面板拼接) */
+            body[data-octo-skin="worldcup"] .wk-bot-detail-desc:not([data-octo-field="creator"]) {
+                order: 1 !important;
+                margin: 0 !important;
+                border-radius: 0 !important;
+                border-left: 1px solid #EBE1CC !important;
+                border-right: 1px solid #EBE1CC !important;
+                border-top: none !important;
+                border-bottom: none !important;
+                background: #FBF8F0 !important;
+            }
+            /* 大框顶(第一项)：上圆角 + 上边框 + 组上间距 */
+            body[data-octo-skin="worldcup"] .wk-bot-detail-desc[data-octo-group="first"],
+            body[data-octo-skin="worldcup"] .wk-bot-detail-desc[data-octo-group="solo"] {
+                border-top: 1px solid #EBE1CC !important;
+                border-radius: 12px 12px 0 0 !important;
+                margin-top: 4px !important;
+            }
+            /* 中段/末项：顶部加分隔线 */
+            body[data-octo-skin="worldcup"] .wk-bot-detail-desc[data-octo-group="mid"],
+            body[data-octo-skin="worldcup"] .wk-bot-detail-desc[data-octo-group="last"] {
+                border-top: 1px solid #EFE7D2 !important;
+            }
+            /* 大框底(末项)：下圆角 + 下边框 */
+            body[data-octo-skin="worldcup"] .wk-bot-detail-desc[data-octo-group="last"] {
+                border-bottom: 1px solid #EBE1CC !important;
+                border-radius: 0 0 12px 12px !important;
+            }
+            /* 只有一项时(solo)：四边成框 */
+            body[data-octo-skin="worldcup"] .wk-bot-detail-desc[data-octo-group="solo"] {
+                border-bottom: 1px solid #EBE1CC !important;
+                border-radius: 12px !important;
+            }
+            /* 命令面板单独一块，排在大框下、按钮上 */
+            body[data-octo-skin="worldcup"] .wk-bot-detail-commands { order: 2 !important; margin-top: 12px !important; }
+            /* 发送/添加好友按钮排大框(及命令)下方 */
+            body[data-octo-skin="worldcup"] .wk-bot-detail-modal .semi-button-block:not(.wk-bot-detail-manage-btn):not(.wk-bot-detail-claw-btn) {
+                order: 3 !important;
+            }
+            /* 创建者 → 最底部作者署名(小字、居中、无框) */
+            body[data-octo-skin="worldcup"] .wk-bot-detail-desc[data-octo-field="creator"] {
+                order: 5 !important;
+                margin: 12px 0 2px !important;
+                padding: 0 !important;
+                border: none !important;
+                background: transparent !important;
+                clip-path: none !important;
+                text-align: center !important;
+                font-size: 12px !important;
+                color: #8a7a52 !important;
+                display: flex !important;
+                justify-content: center !important;
+                align-items: baseline !important;
+                gap: 6px !important;
+            }
+            body[data-octo-skin="worldcup"] .wk-bot-detail-desc[data-octo-field="creator"] .wk-bot-detail-label {
+                background: transparent !important;
+                color: #b0a074 !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                font-size: 11px !important;
+                letter-spacing: 0.06em !important;
+            }
+
             /* ---- 引用块 → 球门：accent 门框(横梁+门柱) + 淡菱形网；hover 踢球时球门网抖动(进球入网)联动 ---- */
             body[data-octo-skin="worldcup"] .wk-msg-row .wk-reply-block,
             body[data-octo-skin="worldcup"] .wk-msg-row .wk-message-text-reply {
@@ -2340,6 +2425,36 @@
         });
     }
 
+    /* ============================================================
+     * 4.6) Bot 资料卡字段按标签文字打标记（data-octo-field / data-octo-group）
+     *   供 CSS 稳定排版：备注/简介等收进一个大框、创建者移到底部作署名。
+     *   按标签文字识别 → 与字段顺序/有无无关；只写变化了的属性（幂等，不制造多余变更）。
+     * ========================================================== */
+    function tagBotDetailFields() {
+        document.querySelectorAll('.wk-bot-detail-content').forEach(content => {
+            const descs = content.querySelectorAll(':scope > .wk-bot-detail-desc');
+            const infoMembers = [];
+            descs.forEach(desc => {
+                const label = desc.querySelector('.wk-bot-detail-label');
+                const t = label ? label.textContent.trim() : '';
+                let kind = 'other';
+                if (t.indexOf('创建者') === 0) kind = 'creator';
+                else if (t.indexOf('备注') === 0) kind = 'remark';
+                else if (t.indexOf('简介') === 0) kind = 'intro';
+                if (desc.getAttribute('data-octo-field') !== kind) desc.setAttribute('data-octo-field', kind);
+                if (kind !== 'creator') infoMembers.push(desc);
+            });
+            // 标记大框首尾/中段（连续面板的圆角与分隔线用）
+            infoMembers.forEach((d, i) => {
+                const pos = infoMembers.length === 1 ? 'solo'
+                    : i === 0 ? 'first'
+                    : i === infoMembers.length - 1 ? 'last'
+                    : 'mid';
+                if (d.getAttribute('data-octo-group') !== pos) d.setAttribute('data-octo-group', pos);
+            });
+        });
+    }
+
     // 点击限高气泡 → 展开 / 收起（避开链接、代码、图片等）
     let clickBound = false;
     function bindClicks() {
@@ -2403,6 +2518,7 @@
             try { expandAllFoldSessions(); } catch (e) { console.warn(TAG, 'expandAllFoldSessions', e); }
             try { markAIContinueMessages(); } catch (e) { console.warn(TAG, 'markAIContinueMessages', e); }
             try { applyClamp(); } catch (e) { console.warn(TAG, 'applyClamp', e); }
+            try { tagBotDetailFields(); } catch (e) { console.warn(TAG, 'tagBotDetailFields', e); }
             try { bindBotCardTilt(); } catch (e) { console.warn(TAG, 'bindBotCardTilt', e); }
         } finally {
             if (bodyObserver) bodyObserver.observe(document.body, OBSERVE_OPTS);
