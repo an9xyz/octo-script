@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Octo AI 消息美化展示 (dev)
 // @namespace    http://tampermonkey.net/
-// @version      1.2.0-dev.3
+// @version      1.2.0-dev.4
 // @description  美化 Octo(DMWork) 聊天消息：三档气泡(AI/自己/他人)、折叠会话自动展开、长消息限高「展开全文」，以及 @提及/引用/文件/合并转发等消息类型与暗色适配；左下角可切换消息主题(赛博紫·亮/暗、美加墨世界杯)。
 // @author       DataSaver
 // @homepageURL  https://github.com/an9xyz/octo-script
@@ -18,7 +18,7 @@
     'use strict';
 
     const TAG = '[Octo AI 美化]';
-    const VERSION = 'v1.2.0-dev.3';
+    const VERSION = 'v1.2.0-dev.4';
 
     /* ============================================================
      * 0) 可调参数
@@ -765,8 +765,17 @@
                 border: none !important;
                 overflow: visible !important;
             }
-            /* 内容：清顶 padding 给 banner，底部微暖白渐变，入场动效 */
+            /* 内容：清顶 padding 给 banner，底部微暖白渐变，入场动效。
+             * flex 列布局 + 主题配色变量(结构共享，各主题只改这些变量的值)。 */
             .wk-bot-detail-content {
+                /* --- 配色变量：默认=赛博紫(亮)，暗色/世界杯各自覆盖 --- */
+                --octo-bd-panel-bg: #f5f5fc;
+                --octo-bd-panel-line: #e2e0f2;
+                --octo-bd-panel-div: #ecebf6;
+                --octo-bd-credit: #8a8ea6;
+                --octo-bd-credit-label: #a6a8c4;
+                display: flex !important;
+                flex-direction: column !important;
                 position: relative !important;
                 padding: 0 22px 22px !important;
                 background: radial-gradient(130% 70% at 50% 0%, #fbfbff 0%, #ffffff 58%) !important;
@@ -792,9 +801,13 @@
             .wk-bot-detail-header {
                 --octo-syn: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22400%22%20height%3D%22120%22%20viewBox%3D%220%200%20400%20120%22%20preserveAspectRatio%3D%22xMidYMid%20slice%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22sky%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23180f3a%22%2F%3E%3Cstop%20offset%3D%220.62%22%20stop-color%3D%22%233a1f6e%22%2F%3E%3Cstop%20offset%3D%220.99%22%20stop-color%3D%22%237a2f86%22%2F%3E%3C%2FlinearGradient%3E%3ClinearGradient%20id%3D%22sun%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%235be6ff%22%2F%3E%3Cstop%20offset%3D%220.5%22%20stop-color%3D%22%23b06bff%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23ff5ac6%22%2F%3E%3C%2FlinearGradient%3E%3CclipPath%20id%3D%22below%22%3E%3Crect%20x%3D%220%22%20y%3D%2284%22%20width%3D%22400%22%20height%3D%2236%22%2F%3E%3C%2FclipPath%3E%3C%2Fdefs%3E%3Crect%20width%3D%22400%22%20height%3D%22120%22%20fill%3D%22url(%23sky)%22%2F%3E%3Ccircle%20cx%3D%22270%22%20cy%3D%2284%22%20r%3D%2236%22%20fill%3D%22url(%23sun)%22%2F%3E%3Cg%20fill%3D%22%23180f3a%22%20opacity%3D%220.6%22%3E%3Crect%20x%3D%22228%22%20y%3D%2256%22%20width%3D%2284%22%20height%3D%223%22%2F%3E%3Crect%20x%3D%22226%22%20y%3D%2263%22%20width%3D%2288%22%20height%3D%224%22%2F%3E%3Crect%20x%3D%22224%22%20y%3D%2271%22%20width%3D%2292%22%20height%3D%225%22%2F%3E%3Crect%20x%3D%22222%22%20y%3D%2280%22%20width%3D%2296%22%20height%3D%226%22%2F%3E%3C%2Fg%3E%3Crect%20x%3D%220%22%20y%3D%2284%22%20width%3D%22400%22%20height%3D%2236%22%20fill%3D%22%230d0920%22%2F%3E%3Cg%20clip-path%3D%22url(%23below)%22%20stroke%3D%22%235be6ff%22%20stroke-opacity%3D%220.5%22%3E%3Cline%20x1%3D%220%22%20y1%3D%2284%22%20x2%3D%22400%22%20y2%3D%2284%22%2F%3E%3Cline%20x1%3D%220%22%20y1%3D%2291%22%20x2%3D%22400%22%20y2%3D%2291%22%2F%3E%3Cline%20x1%3D%220%22%20y1%3D%22102%22%20x2%3D%22400%22%20y2%3D%22102%22%2F%3E%3Cline%20x1%3D%220%22%20y1%3D%22118%22%20x2%3D%22400%22%20y2%3D%22118%22%2F%3E%3C%2Fg%3E%3Cg%20clip-path%3D%22url(%23below)%22%20stroke%3D%22%23b06bff%22%20stroke-opacity%3D%220.5%22%3E%3Cline%20x1%3D%22270%22%20y1%3D%2284%22%20x2%3D%22-60%22%20y2%3D%22120%22%2F%3E%3Cline%20x1%3D%22270%22%20y1%3D%2284%22%20x2%3D%2270%22%20y2%3D%22120%22%2F%3E%3Cline%20x1%3D%22270%22%20y1%3D%2284%22%20x2%3D%22170%22%20y2%3D%22120%22%2F%3E%3Cline%20x1%3D%22270%22%20y1%3D%2284%22%20x2%3D%22230%22%20y2%3D%22120%22%2F%3E%3Cline%20x1%3D%22270%22%20y1%3D%2284%22%20x2%3D%22270%22%20y2%3D%22120%22%2F%3E%3Cline%20x1%3D%22270%22%20y1%3D%2284%22%20x2%3D%22320%22%20y2%3D%22120%22%2F%3E%3Cline%20x1%3D%22270%22%20y1%3D%2284%22%20x2%3D%22400%22%20y2%3D%22120%22%2F%3E%3Cline%20x1%3D%22270%22%20y1%3D%2284%22%20x2%3D%22520%22%20y2%3D%22120%22%2F%3E%3C%2Fg%3E%3Crect%20x%3D%220%22%20y%3D%2282.5%22%20width%3D%22400%22%20height%3D%222%22%20fill%3D%22%237df0ff%22%2F%3E%3C%2Fsvg%3E") !important;
                 align-items: flex-start !important;
+                display: flex !important;
+                flex-direction: column !important;
+                order: 0 !important;
                 position: relative !important;
-                padding-top: 132px !important;
-                margin-bottom: 6px !important;
+                padding: 0 !important;
+                margin: 0 0 6px !important;
+                overflow: visible !important;
             }
             /* banner 主体 → synthwave/outrun 落日场景（内联 SVG 存于 --octo-syn；亮/暗共用, 世界杯另覆盖绿茵） */
             .wk-bot-detail-header::before {
@@ -803,10 +816,11 @@
                 top: 0 !important;
                 left: -22px !important;
                 right: -22px !important;
-                height: 120px !important;
+                bottom: auto !important;
+                height: 176px !important;
                 background: var(--octo-syn) center bottom / cover no-repeat, #150e34 !important;
-                border-radius: 18px 18px 0 0 !important;
-                box-shadow: inset 0 -2px 0 0 rgba(120, 240, 255, 0.75) !important;
+                border-radius: 16px 16px 0 0 !important;
+                box-shadow: inset 0 -3px 0 0 rgba(198, 160, 74, 0.9) !important;
                 z-index: 0 !important;
             }
             /* banner 叠加 CRT 扫描线（synthwave 质感） */
@@ -816,27 +830,28 @@
                 top: 0 !important;
                 left: -22px !important;
                 right: -22px !important;
-                height: 120px !important;
+                height: 176px !important;
                 background: repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.045) 0 1px, transparent 1px 3px) !important;
-                border-radius: 18px 18px 0 0 !important;
+                border-radius: 16px 16px 0 0 !important;
                 pointer-events: none !important;
                 z-index: 0 !important;
             }
 
-            /* 头像：圆形 + 白环 + 品牌紫光晕环 + 浮起投影，压在 banner 底边 */
+            /* 头像：居中大圆头像 + 白环 + 金环(与金卡框呼应) + 浮起投影，浮在 banner 上 */
             .wk-bot-detail-avatar {
                 position: relative !important;
                 z-index: 1 !important;
-                width: 104px !important;
-                height: 104px !important;
-                margin-top: -58px !important;
+                align-self: center !important;
+                width: 150px !important;
+                height: 150px !important;
+                margin: 16px 0 0 !important;
                 border-radius: 50% !important;
                 overflow: hidden !important;
                 background: #fff !important;
                 box-shadow:
-                    0 0 0 5px #fff,
-                    0 0 0 6px rgba(124, 107, 240, 0.55),
-                    0 12px 28px rgba(40, 30, 90, 0.32) !important;
+                    0 0 0 3px rgba(255, 255, 255, 0.92),
+                    0 0 0 4px rgba(198, 160, 74, 0.95),
+                    0 10px 22px rgba(0, 0, 0, 0.42) !important;
             }
             /* 头像内部不论 img / semi-image / WKAvatar(.wk-avatar)，统一放大并裁圆
              * (.wk-avatar 原生仅 40px，且 WKAvatar 不消费 size prop → 这里强制撑满父容器) */
@@ -851,9 +866,10 @@
                 object-fit: cover !important;
             }
 
-            /* 名字 / handle 左对齐 */
+            /* 名字 / handle：落到 banner 下白底，左对齐 */
             .wk-bot-detail-name {
-                margin-top: 14px !important;
+                align-self: flex-start !important;
+                margin-top: 16px !important;
                 font-size: 21px !important;
                 font-weight: 700 !important;
                 letter-spacing: 0.2px !important;
@@ -874,41 +890,97 @@
             }
             .wk-bot-detail-id {
                 align-self: flex-start !important;
-                margin-top: 3px !important;
+                margin-top: 6px !important;
                 font-size: 13px !important;
                 color: #9a9db0 !important;
             }
+            /* 状态 chip（🔌 未上报 Agent 信息 + ?）全主题隐藏 */
             .wk-bot-detail-octopush-chip {
-                margin-left: 0 !important;
-                margin-right: 0 !important;
-                margin-top: 10px !important;
+                display: none !important;
             }
 
-            /* 信息字段 → 赛博 HUD 面板：右上切角 + 紫→青霓虹左条（呼应 banner 紫青）+ 浅底可读 */
+            /* 信息字段 → 备注/简介等「非创建者」合成一个大框(连续面板)；命令面板单独一块；
+             * 创建者移到最底部作署名。颜色用主题变量(--octo-bd-panel-*)，结构全主题共享。
+             * 字段由 JS 按标签打 data-octo-field / data-octo-group 标记(见 tagBotDetailFields)。 */
             .wk-bot-detail-desc,
             .wk-bot-detail-commands {
                 position: relative !important;
-                border: 1px solid #e2e0f2 !important;
-                border-radius: 0 !important;
-                background: #f5f5fc !important;
-                clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 15px, 100% 100%, 0 100%) !important;
                 padding: 12px 15px !important;
-                margin-bottom: 9px !important;
                 font-size: 14px !important;
                 color: #2e2e44 !important;
+                background: var(--octo-bd-panel-bg) !important;
             }
-            /* 紫→青霓虹左条（呼应 banner，取代 CP2077 黄） */
+            /* 面板不再用霓虹左条(避免大框里多条竖线) */
             .wk-bot-detail-desc::before,
-            .wk-bot-detail-commands::before {
-                content: "" !important;
-                position: absolute !important;
-                left: 0 !important;
-                top: 0 !important;
-                bottom: 0 !important;
-                width: 3px !important;
-                background: linear-gradient(180deg, #7c6bf0, #00c4f0) !important;
-                box-shadow: 0 0 6px rgba(0, 196, 240, 0.45) !important;
+            .wk-bot-detail-commands::before { display: none !important; }
+            /* 备注/简介等 → 连续大框 */
+            .wk-bot-detail-desc:not([data-octo-field="creator"]) {
+                order: 1 !important;
+                margin: 0 !important;
+                border-radius: 0 !important;
+                border-left: 1px solid var(--octo-bd-panel-line) !important;
+                border-right: 1px solid var(--octo-bd-panel-line) !important;
+                border-top: none !important;
+                border-bottom: none !important;
+                clip-path: none !important;
             }
+            .wk-bot-detail-desc[data-octo-group="first"],
+            .wk-bot-detail-desc[data-octo-group="solo"] {
+                border-top: 1px solid var(--octo-bd-panel-line) !important;
+                border-radius: 12px 12px 0 0 !important;
+                margin-top: 4px !important;
+            }
+            .wk-bot-detail-desc[data-octo-group="mid"],
+            .wk-bot-detail-desc[data-octo-group="last"] {
+                border-top: 1px solid var(--octo-bd-panel-div) !important;
+            }
+            .wk-bot-detail-desc[data-octo-group="last"] {
+                border-bottom: 1px solid var(--octo-bd-panel-line) !important;
+                border-radius: 0 0 12px 12px !important;
+            }
+            .wk-bot-detail-desc[data-octo-group="solo"] {
+                border-bottom: 1px solid var(--octo-bd-panel-line) !important;
+                border-radius: 12px !important;
+            }
+            /* 命令面板：单独一块(整框)，排在大框下、按钮上 */
+            .wk-bot-detail-commands {
+                order: 2 !important;
+                margin: 12px 0 0 !important;
+                border: 1px solid var(--octo-bd-panel-line) !important;
+                border-radius: 12px !important;
+                clip-path: none !important;
+            }
+            /* 发送/添加好友按钮排大框(及命令)下方 */
+            .wk-bot-detail-modal .semi-button-block:not(.wk-bot-detail-manage-btn):not(.wk-bot-detail-claw-btn) {
+                order: 3 !important;
+            }
+            /* 创建者 → 最底部作者署名(小字、居中、无框) */
+            .wk-bot-detail-desc[data-octo-field="creator"] {
+                order: 5 !important;
+                margin: 12px 0 2px !important;
+                padding: 0 !important;
+                border: none !important;
+                background: transparent !important;
+                clip-path: none !important;
+                text-align: center !important;
+                font-size: 12px !important;
+                color: var(--octo-bd-credit) !important;
+                display: flex !important;
+                justify-content: center !important;
+                align-items: baseline !important;
+                gap: 6px !important;
+            }
+            .wk-bot-detail-desc[data-octo-field="creator"] .wk-bot-detail-label {
+                background: transparent !important;
+                color: var(--octo-bd-credit-label) !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                font-size: 11px !important;
+                letter-spacing: 0.06em !important;
+                text-transform: none !important;
+                clip-path: none !important;
+            }
+            .wk-bot-detail-desc[data-octo-field="creator"] .wk-bot-detail-label::before { content: "" !important; }
             /* 标签 → 浅紫 chip + 紫等宽字 + // 前缀（右下斜切，轻量 HUD tag，与 banner 同色系） */
             .wk-bot-detail-label {
                 display: inline-block !important;
@@ -1637,8 +1709,13 @@
                 color: #9296a8 !important;
             }
 
-            /* ---- Bot 资料卡 ---- */
+            /* ---- Bot 资料卡：暗色只改配色变量(结构继承基础层) ---- */
             body[theme-mode="dark"] .wk-bot-detail-content {
+                --octo-bd-panel-bg: #211d38;
+                --octo-bd-panel-line: rgba(124, 107, 240, 0.30);
+                --octo-bd-panel-div: rgba(124, 107, 240, 0.16);
+                --octo-bd-credit: #9a9db8;
+                --octo-bd-credit-label: #8f92ad;
                 background: radial-gradient(130% 70% at 50% 0%, #1a1733 0%, #121022 58%) !important;
             }
             body[theme-mode="dark"] .wk-bot-detail-header::before {
@@ -1646,8 +1723,6 @@
             }
             body[theme-mode="dark"] .wk-bot-detail-desc,
             body[theme-mode="dark"] .wk-bot-detail-commands {
-                background: #211d38 !important;
-                border-color: rgba(124, 107, 240, 0.24) !important;
                 color: #d4d5e4 !important;
             }
             body[theme-mode="dark"] .wk-bot-detail-label {
