@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Octo AI 消息美化展示 (dev)
 // @namespace    http://tampermonkey.net/
-// @version      1.2.0-dev.6
+// @version      1.2.0-dev.7
 // @description  美化 Octo(DMWork) 聊天消息：三档气泡(AI/自己/他人)、折叠会话自动展开、长消息限高「展开全文」，以及 @提及/引用/文件/合并转发等消息类型与暗色适配；左下角可切换消息主题(赛博紫·亮/暗、美加墨世界杯)。
 // @author       DataSaver
 // @homepageURL  https://github.com/an9xyz/octo-script
@@ -18,7 +18,7 @@
     'use strict';
 
     const TAG = '[Octo AI 美化]';
-    const VERSION = 'v1.2.0-dev.6';
+    const VERSION = 'v1.2.0-dev.7';
 
     /* ============================================================
      * 0) 可调参数
@@ -767,8 +767,8 @@
             .wk-bot-detail-modal .wk-modal-shell[data-octo-rarity="SR"]  { --octo-frame: linear-gradient(135deg,#f0d9ff,#ffffff 24%,#9b59e6 48%,#e0b3ff 72%,#7a3fd0) !important; }
             .wk-bot-detail-modal .wk-modal-shell[data-octo-rarity="SSR"] { --octo-frame: linear-gradient(135deg,#fff6d0,#f2d98a 18%,#ffffff 32%,#c9a24b 50%,#8a6a24 64%,#f2d98a 80%,#fff6d0) !important; }
             .wk-bot-detail-modal .wk-modal-shell[data-octo-rarity="UR"]  { --octo-frame: linear-gradient(135deg,#ff5ac6,#ffd75e 20%,#5be6ff 40%,#b06bff 60%,#ff8a5a 80%,#ff5ac6) !important; }
-            .wk-bot-detail-modal .wk-modal-shell[data-octo-rarity="SSR"] { filter: drop-shadow(0 0 13px rgba(240,200,90,0.55)) !important; }
-            .wk-bot-detail-modal .wk-modal-shell[data-octo-rarity="UR"]  { filter: drop-shadow(0 0 15px rgba(150,120,255,0.6)) drop-shadow(0 0 26px rgba(120,220,255,0.4)) !important; }
+            .wk-bot-detail-modal .wk-modal-shell[data-octo-rarity="SSR"] { filter: drop-shadow(0 0 13px rgba(240,200,90,0.55)); }
+            .wk-bot-detail-modal .wk-modal-shell[data-octo-rarity="UR"]  { filter: drop-shadow(0 0 15px rgba(150,120,255,0.6)) drop-shadow(0 0 26px rgba(120,220,255,0.4)); }
             /* 3D 倾斜后，Semi 外层容器(白底+阴影)若不动会露在卡片后面「露两层」→ 透明化, 只留卡片本体倾斜。
              * 同时 overflow:visible 让倾斜的卡片不被外层裁切。覆盖亮/暗两种(暗色段本给 .wk-modal 容器上过底色)。 */
             .wk-bot-detail-modal .semi-modal-content,
@@ -876,6 +876,130 @@
             @media (prefers-reduced-motion: reduce) {
                 .wk-bot-detail-content::after { animation: none !important; }
                 .wk-bot-detail-modal .wk-modal-shell::after { animation: none !important; }
+            }
+
+            /* 稀有度差异拉大：N 卡框静态(朴素)；SSR/UR 卡框发光脉动 */
+            .wk-bot-detail-modal .wk-modal-shell[data-octo-rarity="N"]::after { animation: none !important; }
+            .wk-bot-detail-modal .wk-modal-shell[data-octo-rarity="SSR"] { animation: octo-glow-ssr 2.2s ease-in-out infinite !important; }
+            .wk-bot-detail-modal .wk-modal-shell[data-octo-rarity="UR"]  { animation: octo-glow-ur 1.9s ease-in-out infinite !important; }
+            @keyframes octo-glow-ssr {
+                0%, 100% { filter: drop-shadow(0 0 9px rgba(240,200,90,.45)); }
+                50%      { filter: drop-shadow(0 0 20px rgba(255,210,100,.8)); }
+            }
+            @keyframes octo-glow-ur {
+                0%, 100% { filter: drop-shadow(0 0 12px rgba(150,120,255,.5)) drop-shadow(0 0 22px rgba(120,220,255,.35)); }
+                50%      { filter: drop-shadow(0 0 22px rgba(190,120,255,.85)) drop-shadow(0 0 40px rgba(120,220,255,.6)); }
+            }
+            @media (prefers-reduced-motion: reduce) {
+                .wk-bot-detail-modal .wk-modal-shell[data-octo-rarity="SSR"],
+                .wk-bot-detail-modal .wk-modal-shell[data-octo-rarity="UR"] { animation: none !important; }
+            }
+
+            /* ===== 抽卡揭晓全屏特效(JS 注入 .octo-gacha-fx 到 body，播完自移除) ===== */
+            .octo-gacha-fx {
+                position: fixed !important;
+                inset: 0 !important;
+                z-index: 99999 !important;
+                pointer-events: none !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                overflow: hidden !important;
+                --fx: #ffcf5e;                 /* 默认金 */
+            }
+            .octo-gacha-fx[data-octo-rarity="SR"]  { --fx: #b884ff; --dim: .22; }
+            .octo-gacha-fx[data-octo-rarity="SSR"] { --fx: #ffcf5e; --dim: .34; }
+            .octo-gacha-fx[data-octo-rarity="UR"]  { --fx: #6be3ff; --dim: .46; }
+            /* 暗角背景:短暂压暗中心，让闪光/光线在浅色页面也能炸出来(screen 混合需要暗底) */
+            .octo-gacha-fx::before {
+                content: "" !important;
+                position: absolute !important;
+                inset: 0 !important;
+                background: radial-gradient(circle at 50% 45%, rgba(8,6,24,var(--dim, .3)) 0%, rgba(8,6,24,calc(var(--dim, .3) * .7)) 38%, transparent 74%) !important;
+                opacity: 0;
+                animation: octo-fx-dim .85s ease-out forwards !important;
+            }
+            @keyframes octo-fx-dim {
+                0%   { opacity: 0; }
+                18%  { opacity: 1; }
+                100% { opacity: 0; }
+            }
+            /* 中心闪光：径向爆闪 + 扩散淡出 */
+            .octo-gacha-flash {
+                position: absolute !important;
+                inset: 0 !important;
+                margin: auto !important;
+                width: 64vmin !important;
+                height: 64vmin !important;
+                border-radius: 50% !important;
+                background: radial-gradient(circle, #ffffff 0%, var(--fx) 32%, transparent 70%) !important;
+                mix-blend-mode: screen !important;
+                opacity: 0;
+                animation: octo-fx-flash .72s ease-out forwards !important;
+            }
+            @keyframes octo-fx-flash {
+                0%   { transform: scale(.2); opacity: 0; }
+                16%  { opacity: 1; }
+                100% { transform: scale(1.9); opacity: 0; }
+            }
+            /* 放射光线(sunburst)：仅 SSR/UR；conic 光芒 + 环形挖空 + 旋转放大淡出 */
+            .octo-gacha-rays {
+                display: none;
+                position: absolute !important;
+                inset: 0 !important;
+                margin: auto !important;
+                width: 150vmin !important;
+                height: 150vmin !important;
+                background: conic-gradient(from 0deg,
+                    transparent 0 7deg, rgba(255,255,255,.55) 7deg 8.5deg,
+                    transparent 8.5deg 22deg, var(--fx) 22deg 23.5deg,
+                    transparent 23.5deg 37deg, rgba(255,255,255,.4) 37deg 38.5deg,
+                    transparent 38.5deg 52deg, var(--fx) 52deg 53.5deg, transparent 53.5deg 67deg) !important;
+                -webkit-mask: radial-gradient(circle, transparent 16%, #000 24%) !important;
+                        mask: radial-gradient(circle, transparent 16%, #000 24%) !important;
+                mix-blend-mode: screen !important;
+                opacity: 0;
+            }
+            .octo-gacha-fx[data-octo-rarity="SSR"] .octo-gacha-rays,
+            .octo-gacha-fx[data-octo-rarity="UR"] .octo-gacha-rays {
+                display: block !important;
+                animation: octo-fx-rays 1.05s ease-out forwards !important;
+            }
+            @keyframes octo-fx-rays {
+                0%   { transform: rotate(-28deg) scale(.35); opacity: 0; }
+                22%  { opacity: .95; }
+                100% { transform: rotate(24deg) scale(1.35); opacity: 0; }
+            }
+            /* UR 彩虹光爆:整屏彩虹薄雾一闪 */
+            .octo-gacha-fx[data-octo-rarity="UR"] .octo-gacha-flash {
+                width: 90vmin !important; height: 90vmin !important;
+                background: radial-gradient(circle, #ffffff 0%, #ffd75e 22%, #5be6ff 44%, #b06bff 64%, transparent 78%) !important;
+            }
+            /* 亮片 sparkle:仅 UR，一簇白点 twinkle */
+            .octo-gacha-spark {
+                display: none;
+                position: absolute !important;
+                inset: 0 !important;
+                margin: auto !important;
+                width: 6px !important; height: 6px !important; border-radius: 50% !important;
+                background: #fff !important;
+                box-shadow:
+                    -30vmin -18vmin 0 0 #fff, 28vmin -22vmin 0 -1px #ffe9a8, -38vmin 14vmin 0 -1px #bfe6ff,
+                    34vmin 16vmin 0 0 #fff, 8vmin -30vmin 0 -1px #fff, -14vmin 26vmin 0 0 #ffd7f2,
+                    44vmin -6vmin 0 -1px #fff, -46vmin -4vmin 0 0 #d9c6ff !important;
+                opacity: 0;
+            }
+            .octo-gacha-fx[data-octo-rarity="UR"] .octo-gacha-spark {
+                display: block !important;
+                animation: octo-fx-spark 1.15s ease-out forwards !important;
+            }
+            @keyframes octo-fx-spark {
+                0%   { transform: scale(.4); opacity: 0; }
+                30%  { opacity: 1; }
+                100% { transform: scale(1.5); opacity: 0; }
+            }
+            @media (prefers-reduced-motion: reduce) {
+                .octo-gacha-fx { display: none !important; }
             }
 
             /* 头部：左对齐，承载 banner */
@@ -2635,13 +2759,29 @@
     function rollBotCardRarity() {
         document.querySelectorAll('.wk-bot-detail-modal .wk-modal-shell').forEach(shell => {
             let rar = shell.getAttribute('data-octo-rarity');
-            if (!rar) { rar = pickRarity(); shell.setAttribute('data-octo-rarity', rar); }
+            if (!rar) {
+                rar = pickRarity();
+                shell.setAttribute('data-octo-rarity', rar);
+                try { playGachaReveal(rar); } catch (e) { /* noop */ }   // 新卡 → 播揭晓动画
+            }
             // 同步到 content(角标 ::after 用 attr() 取值)
             const content = shell.querySelector('.wk-bot-detail-content');
             if (content && content.getAttribute('data-octo-rarity') !== rar) {
                 content.setAttribute('data-octo-rarity', rar);
             }
         });
+    }
+    // 抽卡揭晓全屏特效：SR 起中心闪光，SSR/UR 加放射光线，UR 彩虹光爆 + 亮片。
+    // 注入到 <body>(在 React 弹窗树之外，避免被 reconcile 清掉)，1.3s 后自移除。低档不放，反衬高档。
+    function playGachaReveal(rarity) {
+        if (rarity !== 'SR' && rarity !== 'SSR' && rarity !== 'UR') return;
+        if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        const fx = document.createElement('div');
+        fx.className = 'octo-gacha-fx';
+        fx.setAttribute('data-octo-rarity', rarity);
+        fx.innerHTML = '<div class="octo-gacha-flash"></div><div class="octo-gacha-rays"></div><div class="octo-gacha-spark"></div>';
+        (document.body || document.documentElement).appendChild(fx);
+        setTimeout(() => { fx.remove(); }, 1300);
     }
 
     // 点击限高气泡 → 展开 / 收起（避开链接、代码、图片等）
